@@ -94,7 +94,7 @@ function setPlaying(v){
 async function goTo(y){
   y=Math.max(MIN,Math.min(MAX,y));
   if(!param) return;
-  try{ await param.changeValueAsync(y); updateUI(y); }
+  try{ await param.changeValueAsync(parseInt(y, 10)); updateUI(y); }  
   catch(e){ msg.textContent='Error: '+e.message; msg.style.display='block'; }
 }
 function tick(){ if(cur>=MAX){ stopPlay(); return; } goTo(cur+1); }

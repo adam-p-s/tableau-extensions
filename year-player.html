@@ -30,7 +30,7 @@ input[type=range]{flex:1;accent-color:#01696f;height:4px}
 </style>
 </head>
 <body>
-<div id="msg">Connecting to Tableau…</div>
+<div id="msg">Connecting to Tableau&hellip;</div>
 <div id="ui">
   <div class="row">
     <button id="btn-first" title="First (2005)">
@@ -50,7 +50,7 @@ input[type=range]{flex:1;accent-color:#01696f;height:4px}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
     </button>
     <div class="sep"></div>
-    <span class="year" id="year-display">—</span>
+    <span class="year" id="year-display">&mdash;</span>
     <div class="sep"></div>
     <div class="speed-row">
       <span>Speed:</span>
@@ -101,36 +101,33 @@ function tick(){ if(cur>=MAX){ stopPlay(); return; } goTo(cur+1); }
 function startPlay(){ setPlaying(true); timer=setInterval(tick,+speedSel.value); }
 function stopPlay(){ clearInterval(timer); setPlaying(false); }
 
-btnPlay.addEventListener('click', ()=>playing?stopPlay():startPlay());
-btnPrev.addEventListener('click', ()=>{ stopPlay(); goTo(cur-1); });
-btnNext.addEventListener('click', ()=>{ stopPlay(); goTo(cur+1); });
-btnFirst.addEventListener('click', ()=>{ stopPlay(); goTo(MIN); });
-btnLast.addEventListener('click', ()=>{ stopPlay(); goTo(MAX); });
-speedSel.addEventListener('change', ()=>{ if(playing){ stopPlay(); startPlay(); } });
-scrubber.addEventListener('input', ()=>{ stopPlay(); goTo(+scrubber.value); });
+btnPlay.addEventListener('click',()=>playing?stopPlay():startPlay());
+btnPrev.addEventListener('click',()=>{ stopPlay(); goTo(cur-1); });
+btnNext.addEventListener('click',()=>{ stopPlay(); goTo(cur+1); });
+btnFirst.addEventListener('click',()=>{ stopPlay(); goTo(MIN); });
+btnLast.addEventListener('click',()=>{ stopPlay(); goTo(MAX); });
+speedSel.addEventListener('change',()=>{ if(playing){ stopPlay(); startPlay(); } });
+scrubber.addEventListener('input',()=>{ stopPlay(); goTo(+scrubber.value); });
 
-// Initialise Tableau Extensions API
-if(typeof tableau === 'undefined'){
-  msg.textContent = 'Extensions API library failed to load. Check your internet connection.';
+if(typeof tableau==='undefined'){
+  msg.textContent='Extensions API library failed to load — check internet connection.';
 } else {
-  tableau.extensions.initializeAsync().then(async () => {
-    const dash = tableau.extensions.dashboardContent.dashboard;
-    param = await dash.findParameterAsync(PARAM);
+  tableau.extensions.initializeAsync().then(async()=>{
+    const dash=tableau.extensions.dashboardContent.dashboard;
+    param=await dash.findParameterAsync(PARAM);
     if(!param){
-      msg.textContent = 'Parameter "'+PARAM+'" not found. Edit PARAM in the HTML to match exactly (case-sensitive).';
+      msg.textContent='Parameter "'+PARAM+'" not found. Edit PARAM in the HTML to match exactly.';
       return;
     }
-    updateUI(parseInt(param.currentValue.value) || MIN);
-    param.addEventListener(tableau.TableauEventType.ParameterChanged, async(e) => {
-      const p = await e.getParameterAsync();
-      const v = parseInt(p.currentValue.value);
-      if(v !== cur) updateUI(v);
+    updateUI(parseInt(param.currentValue.value)||MIN);
+    param.addEventListener(tableau.TableauEventType.ParameterChanged,async(e)=>{
+      const p=await e.getParameterAsync();
+      const v=parseInt(p.currentValue.value);
+      if(v!==cur) updateUI(v);
     });
-    msg.style.display = 'none';
-    ui.style.display = 'flex';
-  }).catch(e => {
-    msg.textContent = 'Init failed: ' + String(e);
-  });
+    msg.style.display='none';
+    ui.style.display='flex';
+  }).catch(e=>{ msg.textContent='Init failed: '+String(e); });
 }
 </script>
 </body>

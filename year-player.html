@@ -70,8 +70,9 @@ input[type=range]{flex:1;accent-color:#01696f;height:4px}
 </div>
 <script>
 const MIN=2005, MAX=2025;
-const PARAM='Selected Year'; // must match your parameter name exactly (case-sensitive)
+const PARAM='Selected Year';
 let param=null, playing=false, timer=null, cur=MIN;
+let allowedYears=null;
 
 const msg=document.getElementById('msg'), ui=document.getElementById('ui');
 const elYear=document.getElementById('year-display'), scrubber=document.getElementById('scrubber');
@@ -81,10 +82,21 @@ const btnLast=document.getElementById('btn-last');
 const icPlay=document.getElementById('ic-play'), icPause=document.getElementById('ic-pause');
 const speedSel=document.getElementById('speed');
 
+function isAllowed(y){
+  return !allowedYears || allowedYears.has(y);
+}
+function nearestAllowed(from, direction){
+  let y=from;
+  while(y>=MIN && y<=MAX){
+    if(isAllowed(y)) return y;
+    y+=direction;
+  }
+  return null;
+}
 function updateUI(y){
   cur=y; elYear.textContent=y; scrubber.value=y;
-  btnFirst.disabled=btnPrev.disabled=(y<=MIN);
-  btnNext.disabled=btnLast.disabled=(y>=MAX);
+  btnFirst.disabled=btnPrev.disabled=(nearestAllowed(y-1,-1)===null);
+  btnNext.disabled=btnLast.disabled=(nearestAllowed(y+1,1)===null);
 }
 function setPlaying(v){
   playing=v;
@@ -94,30 +106,51 @@ function setPlaying(v){
 async function goTo(y){
   y=Math.max(MIN,Math.min(MAX,y));
   if(!param) return;
-  try{ await param.changeValueAsync(parseInt(y, 10)); updateUI(y); }  
-  catch(e){ msg.textContent='Error: '+e.message; msg.style.display='block'; }
+  if(!isAllowed(y)){
+    if(playing){
+      const next=nearestAllowed(y+1,1);
+      if(next!==null) goTo(next); else stopPlay();
+    }
+    return;
+  }
+  try{
+    await param.changeValueAsync(parseInt(y,10));
+    updateUI(y);
+  } catch(e){
+    stopPlay();
+    msg.textContent='Error: '+e.message;
+    msg.style.display='block';
+  }
 }
 function tick(){ if(cur>=MAX){ stopPlay(); return; } goTo(cur+1); }
-function startPlay(){ setPlaying(true); timer=setInterval(tick,+speedSel.value); }
+function startPlay(){
+  msg.style.display='none';
+  setPlaying(true);
+  timer=setInterval(tick,+speedSel.value);
+}
 function stopPlay(){ clearInterval(timer); setPlaying(false); }
 
 btnPlay.addEventListener('click',()=>playing?stopPlay():startPlay());
-btnPrev.addEventListener('click',()=>{ stopPlay(); goTo(cur-1); });
-btnNext.addEventListener('click',()=>{ stopPlay(); goTo(cur+1); });
-btnFirst.addEventListener('click',()=>{ stopPlay(); goTo(MIN); });
-btnLast.addEventListener('click',()=>{ stopPlay(); goTo(MAX); });
+btnPrev.addEventListener('click',()=>{ stopPlay(); const y=nearestAllowed(cur-1,-1); if(y!==null) goTo(y); });
+btnNext.addEventListener('click',()=>{ stopPlay(); const y=nearestAllowed(cur+1,1); if(y!==null) goTo(y); });
+btnFirst.addEventListener('click',()=>{ stopPlay(); const y=nearestAllowed(MIN,1); if(y!==null) goTo(y); });
+btnLast.addEventListener('click',()=>{ stopPlay(); const y=nearestAllowed(MAX,-1); if(y!==null) goTo(y); });
 speedSel.addEventListener('change',()=>{ if(playing){ stopPlay(); startPlay(); } });
-scrubber.addEventListener('input',()=>{ stopPlay(); goTo(+scrubber.value); });
+scrubber.addEventListener('input',()=>{ stopPlay(); const y=nearestAllowed(+scrubber.value,1)||nearestAllowed(+scrubber.value,-1); if(y!==null) goTo(y); });
 
 if(typeof tableau==='undefined'){
-  msg.textContent='Extensions API library failed to load — check internet connection.';
+  msg.textContent='Extensions API library failed to load.';
 } else {
   tableau.extensions.initializeAsync().then(async()=>{
     const dash=tableau.extensions.dashboardContent.dashboard;
     param=await dash.findParameterAsync(PARAM);
     if(!param){
-      msg.textContent='Parameter "'+PARAM+'" not found. Edit PARAM in the HTML to match exactly.';
+      msg.textContent='Parameter "'+PARAM+'" not found. Check name is exact (case-sensitive).';
       return;
+    }
+    const domain=param.allowableValues;
+    if(domain.type==='list'){
+      allowedYears=new Set(domain.allowableValues.map(dv=>parseInt(dv.value)));
     }
     updateUI(parseInt(param.currentValue.value)||MIN);
     param.addEventListener(tableau.TableauEventType.ParameterChanged,async(e)=>{

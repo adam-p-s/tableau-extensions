@@ -7,26 +7,27 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f7f6f2}
-#msg{font-size:12px;color:#888;padding:8px;text-align:center}
-#ui{display:none;flex-direction:column;align-items:center;gap:6px;width:100%;padding:6px 10px}
-.row{display:flex;align-items:center;gap:6px;width:100%;justify-content:center}
-.year{font-size:22px;font-weight:700;color:#1a1a2e;min-width:52px;text-align:center;letter-spacing:1px}
-button{background:none;border:none;cursor:pointer;padding:4px;border-radius:4px;
-  color:#555;display:flex;align-items:center;justify-content:center;
+  font-family:'Tableau Book','Tableau','Segoe UI',sans-serif;background:transparent}
+#msg{font-size:11px;color:#888;padding:6px;text-align:center;font-family:inherit}
+#ui{display:none;flex-direction:column;align-items:center;gap:4px;width:100%;padding:4px 10px}
+.row{display:flex;align-items:center;gap:5px;width:100%;justify-content:center}
+.year{font-size:12pt;font-weight:700;color:#000;min-width:40px;text-align:center;
+  letter-spacing:0.5px;font-family:inherit}
+button{background:none;border:none;cursor:pointer;padding:3px;border-radius:3px;
+  color:#1862a8;display:flex;align-items:center;justify-content:center;
   transition:background .15s,color .15s}
-button:hover{background:#e0e0e0;color:#111}
+button:hover{background:#e4edf7;color:#0f4a80}
 button:disabled{opacity:.25;cursor:default}
 button:disabled:hover{background:none}
-#btn-play{background:#01696f;color:#fff;border-radius:50%;width:40px;height:40px;flex-shrink:0}
-#btn-play:hover{background:#0c4e54}
-.sep{width:1px;height:22px;background:#ddd;flex-shrink:0}
-.speed-row{display:flex;align-items:center;gap:5px;font-size:11px;color:#999}
-select{font-size:11px;border:1px solid #ccc;border-radius:4px;padding:2px 4px;
-  background:#fff;color:#444;cursor:pointer}
+#btn-play{background:#1862a8;color:#fff;border-radius:50%;width:28px;height:28px;flex-shrink:0}
+#btn-play:hover{background:#0f4a80}
+.sep{width:1px;height:18px;background:#1862a8;opacity:0.3;flex-shrink:0}
+.speed-row{display:flex;align-items:center;gap:4px;font-size:10px;color:#1862a8;font-family:inherit}
+select{font-size:10px;border:1px solid #1862a8;border-radius:3px;padding:1px 3px;
+  background:#fff;color:#1862a8;cursor:pointer;font-family:inherit}
 .range-wrap{display:flex;align-items:center;gap:4px;width:100%;padding:0 4px}
-input[type=range]{flex:1;accent-color:#01696f;height:4px}
-.range-label{font-size:10px;color:#aaa;min-width:28px;text-align:center}
+input[type=range]{flex:1;accent-color:#1862a8;height:3px}
+.range-label{font-size:9px;color:#1862a8;min-width:26px;text-align:center;font-family:inherit}
 </style>
 </head>
 <body>
@@ -55,10 +56,9 @@ input[type=range]{flex:1;accent-color:#01696f;height:4px}
     <div class="speed-row">
       <span>Speed:</span>
       <select id="speed">
-        <option value="2000">Slow</option>
-        <option value="1000" selected>Normal</option>
-        <option value="500">Fast</option>
-        <option value="250">Very fast</option>
+        <option value="4000">Slow</option>
+        <option value="2000" selected>Normal</option>
+        <option value="1000">Fast</option>
       </select>
     </div>
   </div>
@@ -82,15 +82,10 @@ const btnLast=document.getElementById('btn-last');
 const icPlay=document.getElementById('ic-play'), icPause=document.getElementById('ic-pause');
 const speedSel=document.getElementById('speed');
 
-function isAllowed(y){
-  return !allowedYears || allowedYears.has(y);
-}
-function nearestAllowed(from, direction){
+function isAllowed(y){ return !allowedYears || allowedYears.has(y); }
+function nearestAllowed(from, dir){
   let y=from;
-  while(y>=MIN && y<=MAX){
-    if(isAllowed(y)) return y;
-    y+=direction;
-  }
+  while(y>=MIN && y<=MAX){ if(isAllowed(y)) return y; y+=dir; }
   return null;
 }
 function updateUI(y){
@@ -107,27 +102,14 @@ async function goTo(y){
   y=Math.max(MIN,Math.min(MAX,y));
   if(!param) return;
   if(!isAllowed(y)){
-    if(playing){
-      const next=nearestAllowed(y+1,1);
-      if(next!==null) goTo(next); else stopPlay();
-    }
+    if(playing){ const n=nearestAllowed(y+1,1); if(n!==null) goTo(n); else stopPlay(); }
     return;
   }
-  try{
-    await param.changeValueAsync(parseInt(y,10));
-    updateUI(y);
-  } catch(e){
-    stopPlay();
-    msg.textContent='Error: '+e.message;
-    msg.style.display='block';
-  }
+  try{ await param.changeValueAsync(parseInt(y,10)); updateUI(y); }
+  catch(e){ stopPlay(); msg.textContent='Error: '+e.message; msg.style.display='block'; }
 }
 function tick(){ if(cur>=MAX){ stopPlay(); return; } goTo(cur+1); }
-function startPlay(){
-  msg.style.display='none';
-  setPlaying(true);
-  timer=setInterval(tick,+speedSel.value);
-}
+function startPlay(){ msg.style.display='none'; setPlaying(true); timer=setInterval(tick,+speedSel.value); }
 function stopPlay(){ clearInterval(timer); setPlaying(false); }
 
 btnPlay.addEventListener('click',()=>playing?stopPlay():startPlay());
@@ -144,10 +126,7 @@ if(typeof tableau==='undefined'){
   tableau.extensions.initializeAsync().then(async()=>{
     const dash=tableau.extensions.dashboardContent.dashboard;
     param=await dash.findParameterAsync(PARAM);
-    if(!param){
-      msg.textContent='Parameter "'+PARAM+'" not found. Check name is exact (case-sensitive).';
-      return;
-    }
+    if(!param){ msg.textContent='Parameter "'+PARAM+'" not found. Check name is exact (case-sensitive).'; return; }
     const domain=param.allowableValues;
     if(domain.type==='list'){
       allowedYears=new Set(domain.allowableValues.map(dv=>parseInt(dv.value)));
@@ -158,8 +137,7 @@ if(typeof tableau==='undefined'){
       const v=parseInt(p.currentValue.value);
       if(v!==cur) updateUI(v);
     });
-    msg.style.display='none';
-    ui.style.display='flex';
+    msg.style.display='none'; ui.style.display='flex';
   }).catch(e=>{ msg.textContent='Init failed: '+String(e); });
 }
 </script>
